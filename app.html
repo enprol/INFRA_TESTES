@@ -4405,6 +4405,14 @@ A Nota Agronômica (N.A.) varia de 0,00 a 1,00, sendo que valores mais próximos
     #panel-desp1-parecer .par-preview p:last-child{margin-bottom:0;}
     #panel-desp1-parecer .par-preview b{font-weight:800;}
     #panel-desp1-parecer .par-preview .par-prev-empty{color:#93a0ad; font-style:italic;}
+    /* Campo único de texto (edição + negrito visíveis no mesmo lugar) */
+    #panel-desp1-parecer .par-rich{padding:13px 15px; background:#fff; border:1px solid var(--borda-forte); border-radius:9px; font-size:13px; line-height:1.7; color:var(--texto); min-height:120px; outline:none; text-align:justify;}
+    #panel-desp1-parecer .par-rich:focus{border-color:var(--azul); box-shadow:0 0 0 3px rgba(31,111,192,.12); text-align:left;}
+    #panel-desp1-parecer .par-rich > div{margin:0 0 8px;}
+    #panel-desp1-parecer .par-rich > div:last-child{margin-bottom:0;}
+    #panel-desp1-parecer .par-rich .par-li{padding-left:16px; text-indent:-13px;}
+    #panel-desp1-parecer .par-rich b{font-weight:800; color:#12203a;}
+    #panel-desp1-parecer .par-rich:empty::before{content:attr(data-ph); color:#93a0ad; font-style:italic;}
     #panel-desp1-parecer .par-caso{
       font-size:12.5px; color:var(--azul-esc); background:#eaf2fb; border:1px solid #cfe0f0;
       border-radius:8px; padding:8px 13px; margin:0 0 18px; font-weight:600;
@@ -4453,9 +4461,10 @@ A Nota Agronômica (N.A.) varia de 0,00 a 1,00, sendo que valores mais próximos
     <h2 class="vsec"><span>I – Relatório</span></h2>
     <div class="vcard">
       <div class="vactions" style="margin-bottom:8px;"><button class="vbtn vbtn-ghost vbtn-sm" type="button" onclick="PAR_gerarTexto('relatorio')">↻ Restaurar texto automático</button></div>
-      <div class="vfield grow"><label for="par_relatorio">Texto do relatório<span class="hint-auto"> (gerado e atualizado automaticamente — editável)</span></label><textarea id="par_relatorio" rows="14" placeholder="Preenchido automaticamente assim que os dados da Ficha de Vistoria estiverem disponíveis..."></textarea></div>
-      <div class="par-preview-label" id="par_relatorio_prev_lbl">Pré-visualização (como sai no PDF)</div>
-      <div class="par-preview" id="par_relatorio_prev" role="region" aria-labelledby="par_relatorio_prev_lbl"></div>
+      <label style="display:block;font-size:11px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.4px;">Texto do relatório<span class="hint-auto"> (gerado automaticamente — edite direto no campo; o negrito aparece e sai igual no PDF)</span></label>
+      <div class="par-toolbar"><button type="button" class="par-bold-btn" onclick="PAR_richBold('par_relatorio')"><b>N</b> Negrito</button><span class="hint-inline">Selecione o texto e clique em Negrito (ou Ctrl+B).</span></div>
+      <div class="par-rich" id="par_relatorio_rich" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Texto do relatório" data-ph="Preenchido automaticamente assim que os dados da Ficha de Vistoria estiverem disponíveis..." oninput="PAR_syncFromRich('par_relatorio')" onkeydown="PAR_richKey(event,'par_relatorio')"></div>
+      <textarea id="par_relatorio" style="display:none" aria-hidden="true" tabindex="-1"></textarea>
     </div>
 
     <div style="display:none;">
@@ -4500,9 +4509,10 @@ A Nota Agronômica (N.A.) varia de 0,00 a 1,00, sendo que valores mais próximos
     <h2 class="vsec"><span>IV – Conclusão</span></h2>
     <div class="vcard">
       <div class="vactions" style="margin-bottom:8px;"><button class="vbtn vbtn-ghost vbtn-sm" type="button" onclick="PAR_gerarTexto('conclusao')">↻ Restaurar texto automático</button></div>
-      <div class="vfield grow"><label for="par_conclusao">Conclusão<span class="hint-auto"> (gerado e atualizado automaticamente — editável)</span></label><textarea id="par_conclusao" rows="6" placeholder=""></textarea></div>
-      <div class="par-preview-label" id="par_conclusao_prev_lbl">Pré-visualização (como sai no PDF)</div>
-      <div class="par-preview" id="par_conclusao_prev" role="region" aria-labelledby="par_conclusao_prev_lbl"></div>
+      <label style="display:block;font-size:11px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.4px;">Conclusão<span class="hint-auto"> (gerado automaticamente — edite direto no campo; o negrito aparece e sai igual no PDF)</span></label>
+      <div class="par-toolbar"><button type="button" class="par-bold-btn" onclick="PAR_richBold('par_conclusao')"><b>N</b> Negrito</button><span class="hint-inline">Selecione o texto e clique em Negrito (ou Ctrl+B).</span></div>
+      <div class="par-rich" id="par_conclusao_rich" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Conclusão" data-ph="Gerado automaticamente a partir dos dados do parecer..." oninput="PAR_syncFromRich('par_conclusao')" onkeydown="PAR_richKey(event,'par_conclusao')"></div>
+      <textarea id="par_conclusao" style="display:none" aria-hidden="true" tabindex="-1"></textarea>
       <div id="par_pend_aviso" class="par-aviso" style="display:none;" role="status">Há item(ns) marcado(s) como <b>Não</b> no check list documental. A tabela de pendências abaixo (Identificação / Pendência / Solução) foi gerada automaticamente — revise e descreva a solução de cada uma.</div>
       <div id="par_pend_wrap" class="par-pend-wrap" style="display:none;">
         <h3 class="vsub" id="par_h_pendencias" style="color:#8a2c1f;">Pendências identificadas</h3>
@@ -14016,8 +14026,12 @@ window.UFOTO_rodapeHTML=rodapeHTML;
     }).join("");
   }
   function PAR_updatePreview(id){
-    var ta=document.getElementById(id), pv=document.getElementById(id+"_prev");
-    if(!ta||!pv) return;
+    var ta=document.getElementById(id); if(!ta) return;
+    // Campo único (contenteditable): renderiza nele, salvo enquanto o usuário digita
+    var rich=document.getElementById(id+"_rich");
+    if(rich){ if(document.activeElement!==rich) rich.innerHTML=PAR_mdToHtml(ta.value); return; }
+    // fallback antigo: preview separado
+    var pv=document.getElementById(id+"_prev"); if(!pv) return;
     var v=ta.value;
     pv.innerHTML = v.trim() ? PAR_richPreview(v) : '<p class="par-prev-empty">A pré-visualização aparece aqui assim que o texto for gerado.</p>';
   }
@@ -14025,8 +14039,81 @@ window.UFOTO_rodapeHTML=rodapeHTML;
   function PAR_ligarPreview(id){
     var ta=document.getElementById(id); if(!ta) return;
     ta.addEventListener("input", function(){ PAR_updatePreview(id); });
+    var rich=document.getElementById(id+"_rich");
+    if(rich){
+      // ao sair do campo: normaliza (md <-> html) para manter o texto estável
+      rich.addEventListener("blur", function(){ window.PAR_syncFromRich(id); window.PAR_renderRich(id); });
+      // colar sempre como texto simples (evita HTML de outros apps)
+      rich.addEventListener("paste", function(ev){
+        ev.preventDefault();
+        var txt=(ev.clipboardData||window.clipboardData).getData("text/plain");
+        try{ document.execCommand("insertText",false,txt); }catch(e){ document.execCommand("insertHTML",false,esc(txt).replace(/\n/g,"<br>")); }
+      });
+    }
     PAR_updatePreview(id);
   }
+
+  /* ===== Campo único com negrito visível/editável (I – Relatório e IV – Conclusão) ===== */
+  function PAR_mdToHtml(md){
+    return String(md||"").split("\n").map(function(ln){
+      if(ln.trim()===""){ return "<div><br></div>"; }
+      var bullet=/^•\s+/.test(ln);
+      var h=esc(bullet?ln.replace(/^•\s+/,""):ln).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>");
+      return bullet ? ('<div class="par-li">• '+h+'</div>') : ("<div>"+h+"</div>");
+    }).join("");
+  }
+  function PAR_serialLine(node){
+    var s="";
+    node.childNodes.forEach(function(n){
+      if(n.nodeType===3){ s+=n.nodeValue; }
+      else if(n.nodeType===1){
+        if(n.tagName==="BR"){ return; }
+        var st=(n.getAttribute&&n.getAttribute("style"))||"";
+        var bold=(n.tagName==="B"||n.tagName==="STRONG"||/font-weight\s*:\s*(bold|[6-9]00)/i.test(st));
+        var inner=PAR_serialLine(n);
+        if(bold && inner.replace(/\s/g,"")!==""){ s+="**"+inner.trim()+"**"+(/\s$/.test(inner)?" ":""); }
+        else { s+=inner; }
+      }
+    });
+    return s;
+  }
+  function PAR_htmlToMd(view){
+    var hasBlock=false;
+    view.childNodes.forEach(function(n){ if(n.nodeType===1 && (n.tagName==="DIV"||n.tagName==="P")) hasBlock=true; });
+    var lines=[];
+    if(!hasBlock){ lines.push(PAR_serialLine(view)); }
+    else {
+      view.childNodes.forEach(function(n){
+        if(n.nodeType===3){ if(n.nodeValue.trim()!=="") lines.push(n.nodeValue); }
+        else if(n.nodeType===1){
+          var line=PAR_serialLine(n);
+          if((n.className||"").indexOf("par-li")>=0){ line="• "+line.replace(/^•\s*/,""); }
+          lines.push(line);
+        }
+      });
+    }
+    return lines.join("\n").replace(/ /g," ").replace(/\*\*\s*\*\*/g,"").replace(/[ \t]+\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim();
+  }
+  window.PAR_renderRich=function(id){
+    var v=document.getElementById(id+"_rich"), t=document.getElementById(id);
+    if(v && t && document.activeElement!==v) v.innerHTML=PAR_mdToHtml(t.value);
+  };
+  window.PAR_syncFromRich=function(id){
+    var v=document.getElementById(id+"_rich"), t=document.getElementById(id);
+    if(!v||!t) return;
+    t.value=PAR_htmlToMd(v);
+    t.dispatchEvent(new Event("input",{bubbles:true}));
+  };
+  window.PAR_richBold=function(id){
+    var v=document.getElementById(id+"_rich"); if(!v) return;
+    v.focus();
+    try{ document.execCommand("styleWithCSS",false,false); }catch(e){}
+    try{ document.execCommand("bold"); }catch(e){}
+    window.PAR_syncFromRich(id);
+  };
+  window.PAR_richKey=function(ev,id){
+    if((ev.ctrlKey||ev.metaKey) && (ev.key==="b"||ev.key==="B")){ ev.preventDefault(); window.PAR_richBold(id); }
+  };
 
   // ---- Textos padrão (fundamentação legal / objetivo / regularidade) ----
   var TXT_FUNDAMENTACAO =
