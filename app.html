@@ -11353,9 +11353,62 @@ function AV_gerarDescSituacao(){
     }
   };
 
+  var _cadSPS = "";   // "" = todos; senão "01".."09"
+
+  function _cadRotulo(it){
+    var r = (it && it.processo_sei) ? String(it.processo_sei) : "";
+    r = r.replace(/^\s*Processo\s+administrativo\s*:\s*/i, "").trim();   // oculta o termo
+    return r || "(sem identificação)";
+  }
+  function _cadFiltroSPSregex(){
+    if (!_cadSPS) return null;
+    var n = _cadSPS.replace(/^0+/, "") || "0";
+    return new RegExp("SPS[\\s\\-–]*0?" + n + "(?!\\d)", "i");   // SPS-04 / SPS 4 / SPS4, não SPS-40
+  }
+  function _cadInjetarFiltroSPS(){
+    var busca = document.getElementById("cadNuvemBusca");
+    if (busca && busca.placeholder && /processo sei/i.test(busca.placeholder)) {
+      busca.placeholder = "Buscar por CTD, processo, SEI…";
+    }
+    if (document.getElementById("cadNuvemFiltroSPS") || !busca) return;
+    var wrap = document.createElement("div");
+    wrap.id = "cadNuvemFiltroSPS";
+    wrap.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;align-items:center;";
+    var lbl = document.createElement("span");
+    lbl.textContent = "SPS:";
+    lbl.style.cssText = "font-size:12px;font-weight:700;color:#6b7887;margin-right:2px;";
+    wrap.appendChild(lbl);
+    ["", "01", "02", "03", "04", "05", "06", "07", "08", "09"].forEach(function(v){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = v || "Todos";
+      b.dataset.sps = v;
+      b.style.cssText = "font-size:12px;padding:4px 11px;border-radius:14px;border:1px solid #cfd9e4;background:#fff;color:#243447;cursor:pointer;font-weight:600;";
+      b.onclick = function(){ _cadSPS = v; _cadAtualizarChipsSPS(); CAD_pesquisarNaTela(); };
+      wrap.appendChild(b);
+    });
+    busca.parentNode.appendChild(wrap);
+    _cadAtualizarChipsSPS();
+  }
+  function _cadAtualizarChipsSPS(){
+    var wrap = document.getElementById("cadNuvemFiltroSPS");
+    if (!wrap) return;
+    wrap.querySelectorAll("button").forEach(function(b){
+      var on = (b.dataset.sps === _cadSPS);
+      b.style.background = on ? "#0a4d7c" : "#fff";
+      b.style.color = on ? "#fff" : "#243447";
+      b.style.borderColor = on ? "#0a4d7c" : "#cfd9e4";
+    });
+  }
+
   window.CAD_abrirModal = function(){
     var modal = document.getElementById("cadNuvemModal");
     if (!modal) return;
+    var card = modal.firstElementChild;
+    if (card){ card.style.width = "min(940px, 95vw)"; card.style.maxHeight = "90vh"; }
+    var lista = document.getElementById("cadNuvemLista");
+    if (lista) lista.style.minHeight = "340px";
+    _cadInjetarFiltroSPS();
     modal.style.display = "flex";
     document.body.classList.add("modal-aberto");
     var b = document.getElementById("cadNuvemBusca"); if (b) b.value = "";
@@ -11376,18 +11429,20 @@ function AV_gerarDescSituacao(){
     _cadBuscaTimer = setTimeout(async function(){
       var itens = await CAD_pesquisar(termo);
       if (!lista) return;
+      var reSPS = _cadFiltroSPSregex();
+      if (reSPS) itens = itens.filter(function(it){ return reSPS.test(it.ctd || "") || reSPS.test(it.processo_sei || ""); });
       if (!itens.length){
-        lista.innerHTML = '<div style="padding:20px;text-align:center;color:#8a97a6;font-size:13px;">Nenhum cadastro encontrado.</div>';
+        lista.innerHTML = '<div style="padding:20px;text-align:center;color:#8a97a6;font-size:13px;">Nenhum cadastro encontrado' + (_cadSPS ? ' para SPS-' + _cadSPS : '') + '.</div>';
         return;
       }
       lista.innerHTML = "";
       itens.forEach(function(it){
         var row = document.createElement("div");
-        row.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:8px;cursor:pointer;";
+        row.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 12px;border-radius:8px;cursor:pointer;";
         row.onmouseenter = function(){ row.style.background = "#f5f8fb"; };
         row.onmouseleave = function(){ row.style.background = "transparent"; };
         var dt = it.atualizado_em ? new Date(it.atualizado_em).toLocaleString("pt-BR") : "";
-        var rotulo = it.processo_sei ? it.processo_sei : "(sem processo SEI)";
+        var rotulo = _cadRotulo(it);
         var info = document.createElement("span");
         info.style.cssText = "flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
         info.innerHTML =
