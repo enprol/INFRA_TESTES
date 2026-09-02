@@ -2315,6 +2315,7 @@ body.modal-aberto .app-header{ pointer-events:none !important; opacity:.45 !impo
     </nav>
     <button class="btn-cad" id="btnSalvarCad" onclick="CAD_salvarNuvem()" title="Salvar cadastro no servidor da empresa">☁️ Salvar</button>
     <button class="btn-cad" id="btnAbrirCad" onclick="CAD_abrirModal()" title="Abrir cadastro salvo no servidor da empresa">📂 Abrir</button>
+    <button class="btn-cad" id="btnNovoCad" onclick="CAD_novoCadastro()" title="Limpar tudo e começar um cadastro novo">✨ Novo Cadastro</button>
     <button class="btn-cad" id="btnBackupJson" onclick="CAD_salvar()" title="Baixar uma cópia local em .json (backup)">⬇️ Backup .json</button>
     <input type="file" id="cad_abrir_file" accept=".json" style="display:none" onchange="CAD_abrir(this)">
     <button class="btn-unir" id="btnUnirTudo" onclick="unirTudo()">
@@ -11112,11 +11113,10 @@ function AV_gerarDescSituacao(){
         if(!confirm("Este arquivo não parece ser um cadastro do sistema. Deseja tentar abrir mesmo assim?")){ input.value=""; return; }
       }
       const falhas = restaurarPacote(pacote);
-      if(falhas.length){
-        alert("Cadastro carregado, mas com "+falhas.length+" problema(s) em seções específicas (os demais dados foram restaurados normalmente):\n\n"+falhas.join("\n"));
-      } else {
-        alert("Cadastro carregado com sucesso.");
-      }
+      const _msg = falhas.length
+        ? ("Cadastro carregado, mas com "+falhas.length+" problema(s) em seções específicas (os demais dados foram restaurados normalmente):\n\n"+falhas.join("\n"))
+        : "Cadastro carregado com sucesso.";
+      (window.__cadCarregado || window.alert)(_msg);
       input.value="";
     };
     rd.readAsText(file, "utf-8");
@@ -11336,10 +11336,56 @@ function AV_gerarDescSituacao(){
       var msg = 'Cadastro "' + ctd + '" carregado com sucesso.';
       if (falhas.length) msg = "Cadastro carregado, mas com " + falhas.length + " problema(s) em seções específicas:\n\n" + falhas.join("\n");
       if (movidos && window.CAD_AVISAR_ORFAOS) msg += "\n\n" + movidos + " campo(s) de um layout anterior não aparecem na tela, mas continuam salvos no arquivo.";
-      alert(msg);
+      window.__cadCarregado(msg);
     }catch(e){
       alert("Não foi possível abrir esse cadastro: " + (e && e.message || e));
     }
+  };
+
+  /* ===== Modal "Cadastro carregado!" (após Abrir do servidor ou arquivo local) ===== */
+  function _cadModalInfo(){
+    var m = document.getElementById("cadInfoModal");
+    if (m) return m;
+    m = document.createElement("div");
+    m.id = "cadInfoModal";
+    m.style.cssText = "display:none;position:fixed;inset:0;background:rgba(20,30,45,.55);z-index:1000000;align-items:center;justify-content:center;";
+    m.innerHTML =
+      '<div style="background:#fff;border-radius:12px;width:min(440px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;">' +
+        '<div style="padding:18px 22px;border-bottom:1px solid #e7ecf2;display:flex;align-items:center;gap:10px;">' +
+          '<span id="cadInfoIco" style="font-size:22px;">✅</span>' +
+          '<strong id="cadInfoTit" style="color:#0a4d7c;font-size:16px;">Cadastro carregado!</strong>' +
+        '</div>' +
+        '<div id="cadInfoMsg" style="padding:18px 22px;font-size:13.5px;line-height:1.6;color:#243447;white-space:pre-wrap;max-height:50vh;overflow:auto;"></div>' +
+        '<div style="padding:12px 22px 16px;display:flex;justify-content:flex-end;">' +
+          '<button id="cadInfoOk" type="button" style="background:#0a4d7c;color:#fff;border:none;padding:9px 28px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">OK</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(m);
+    return m;
+  }
+  window.__cadCarregado = function(msg, onOk){
+    var m = _cadModalInfo();
+    var comAviso = /problema\(s\)|não aparecem na tela/i.test(msg || "");
+    m.querySelector("#cadInfoIco").textContent = comAviso ? "⚠️" : "✅";
+    m.querySelector("#cadInfoTit").textContent = comAviso ? "Cadastro carregado (com avisos)" : "Cadastro carregado!";
+    m.querySelector("#cadInfoMsg").textContent = msg || "";
+    m.style.display = "flex";
+    document.body.classList.add("modal-aberto");
+    var ok = m.querySelector("#cadInfoOk");
+    ok.onclick = function(){
+      m.style.display = "none";
+      document.body.classList.remove("modal-aberto");
+      if (typeof onOk === "function") { try { onOk(); } catch(e){} }
+    };
+    try { ok.focus(); } catch(e){}
+  };
+
+  /* ===== Novo Cadastro — limpa tudo para um preenchimento novo ===== */
+  window.CAD_novoCadastro = function(){
+    if (!confirm("Começar um cadastro NOVO?\n\nTodos os dados preenchidos na tela serão limpos. O que não estiver salvo será perdido.")) return;
+    try { window.__CAD_ATUAL = null; } catch(e){}
+    try { sessionStorage.setItem("enprol_logado", "1"); } catch(e){}   // não pedir login de novo
+    location.reload();
   };
 
   window.CAD_excluir = async function(ctd, rotulo, secao){
